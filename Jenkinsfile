@@ -47,8 +47,9 @@ node('docker') {
     sh 'bin/ci-stop.sh'
 
   stage 'Push'
-
-    docker.withRegistry('https://registry.hub.docker.com/',   "dockerhub-bigfleet") {
+    def maintainer = maintainer()
+    def imagename = imagename()
+    docker.withRegistry('https://registry.hub.docker.com/',   "dockerhub-$maintainer") {
           def baseImg = docker.build("$maintainer/$imagename")
           baseImg.push("$tag")
     }
