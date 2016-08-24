@@ -1,2 +1,2 @@
-maintainer="tier"
-imagename="imagename-replaceme-in-common-bash"
+maintainer="bigfleet"
+imagename="shibboleth_sp"
