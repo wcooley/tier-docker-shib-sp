@@ -13,20 +13,21 @@ node('docker') {
       sh 'ls'
       sh 'mv bin/* ../bin/.'
     }
+  stage 'Environment'
+  
+    def maintainer = maintainer()
+    def imagename = imagename()
+    def tag = env.BRANCH_NAME
+    if(!imagename){
+      echo "You must define an imagename in common.bash"
+      currentBuild.result = 'FAILURE'
+    }
+    if(maintainer){
+      echo "Building ${maintainer}:${tag} for ${maintainer}"
+    }
 
   stage 'Build'
     try{
-      def maintainer = maintainer()
-      def imagename = imagename()
-      def tag = env.BRANCH_NAME
-      if(!imagename){
-        echo "You must define an imagename in common.bash"
-        currentBuild.result = 'FAILURE'
-      }
-      if(maintainer){
-        echo "Building ${maintainer}:${tag} for ${maintainer}"
-      }
-
       sh 'bin/build.sh &> debug'
     } catch(error) {
       def error_details = readFile('./debug');
