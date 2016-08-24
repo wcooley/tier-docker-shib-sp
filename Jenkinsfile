@@ -48,7 +48,7 @@ node('docker') {
 
   stage 'Push'
 
-    docker.withRegistry('https://registry.hub.docker.com/',   "dockerhub-$maintainer") {
+    docker.withRegistry('https://registry.hub.docker.com/',   "dockerhub-bigfleet") {
           def baseImg = docker.build("$maintainer/$imagename")
           baseImg.push("$tag")
     }
