@@ -70,6 +70,5 @@ def handleError(String message){
   echo "${message}"
   currentBuild.setResult("FAILED")
   slackSend color: 'danger', message: "${message}"
-  step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "$email-error-id", sendToIndividuals: true])
   sh 'exit 1'
 }
