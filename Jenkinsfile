@@ -34,9 +34,17 @@ node {
       sh "rm -f ./debug"
       handleError(message)
     }
+  stage 'Start container'
+
+    sh 'bin/ci-run.sh'
+
   stage 'Tests'
 
     sh 'bin/test.sh'
+    // should build a finally construct here
+  stage 'Stop container'
+
+    sh 'bin/ci-stop.sh'
 
   stage 'Push'
 
