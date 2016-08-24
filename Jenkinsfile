@@ -6,12 +6,12 @@ node('docker') {
 
   stage 'Acquire util'
 
-    sh 'mkdir -p bin'
-    dir('bin'){
+    sh 'mkdir -p tmp'
+    dir('tmp'){
       git([ url: "https://github.internet2.edu/docker/util.git",
           credentialsId: "jenkins-github-access-token" ])
       sh 'ls'
-      sh 'mv bin/* .'
+      sh 'mv bin/* ../bin/.'
     }
 
   stage 'Build'
