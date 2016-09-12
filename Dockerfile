@@ -28,6 +28,9 @@ RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
       && rm /etc/httpd/conf.d/welcome.conf
       
 COPY httpd-shib-foreground /usr/local/bin/
+COPY conf/attribute-map.xml /opt/etc/shibboleth/attribute-map.xml
+COPY conf/inc-md-cert.pem /opt/etc/shibboleth/inc-md-cert.pem
+COPY conf/shibboleth_keygen.sh /opt/bin/shibboleth_keygen.sh
 
 EXPOSE 80 443
 CMD ["httpd-shib-foreground"]
