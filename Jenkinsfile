@@ -13,33 +13,33 @@ node('docker') {
       sh 'ls'
       sh 'mv bin/* ../bin/.'
     }
-  stage 'Environment'
-
+  stage 'Setting build context'
+  
     def maintainer = maintainer()
     def imagename = imagename()
-    def tag = env.BRANCH_NAME
-
+    def tag
+    
     // Tag images created on master branch with 'latest'
-   if(env.BRANCH_NAME == "master"){
-     tag = "latest"
-   }else{
-     tag = env.BRANCH_NAME
-   }
-
-   if(!imagename){
+    if(env.BRANCH_NAME == "master"){
+      tag = "latest"
+    }else{
+      tag = env.BRANCH_NAME
+    }
+        
+    if(!imagename){
       echo "You must define an imagename in common.bash"
       currentBuild.result = 'FAILURE'
-    }
-    if(maintainer){
-      echo "Building ${maintainer}:${tag} for ${maintainer}"
-    }
+     }
+     if(maintainer){
+      echo "Building ${imagename}:${tag} for ${maintainer}"
+     }
 
   stage 'Build'
     try{
-      sh 'bin/build.sh &> debug'
+      sh 'bin/rebuild.sh &> debug'
     } catch(error) {
       def error_details = readFile('./debug');
-      def message = "BUILD ERROR: There was a problem building the Base Image. \n\n ${error_details}"
+      def message = "BUILD ERROR: There was a problem building the shibboleth-sp mage. \n\n ${error_details}"
       sh "rm -f ./debug"
       handleError(message)
     }
@@ -49,8 +49,15 @@ node('docker') {
 
   stage 'Tests'
 
-    sh 'bin/test.sh'
-    // should build a finally construct here
+    try{
+      sh 'bin/test.sh &> debug'
+    } catch(error) {
+      def error_details = readFile('./debug');
+      def message = "BUILD ERROR: There was a problem testing ${imagename}:${tag}. \n\n ${error_details}"
+      sh "rm -f ./debug"
+      handleError(message)
+    }
+    
   stage 'Stop container'
 
     sh 'bin/ci-stop.sh'
@@ -60,8 +67,10 @@ node('docker') {
           def baseImg = docker.build("$maintainer/$imagename")
           baseImg.push("$tag")
     }
-
-
+    
+  stage 'Notify'
+  
+    slackSend color: 'good', message: "$maintainer/$imagename:$tag pushed to DockerHub"
 }
 
 def maintainer() {
