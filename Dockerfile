@@ -29,11 +29,9 @@ RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
 
 # Add starters and installers
 ADD ./container_files /opt
-      
-COPY httpd-shib-foreground /usr/local/bin/
-COPY conf/attribute-map.xml /opt/etc/shibboleth/attribute-map.xml
-COPY conf/inc-md-cert.pem /opt/etc/shibboleth/inc-md-cert.pem
-COPY conf/shibboleth_keygen.sh /opt/bin/shibboleth_keygen.sh
+
+#Script to start service
+RUN ln -s /opt/bin/httpd-shib-foreground  /usr/local/bin  
 
 #Added ssl default conf
 RUN ln -s /opt/etc/httpd/conf.d/ssl.conf /etc/httpd/conf.d/ssl.conf
