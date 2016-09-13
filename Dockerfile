@@ -1,4 +1,4 @@
-FROM bigfleet/centos7base
+FROM tier/centos7base
 
 # Define args and set a default value
 ARG maintainer=tier
