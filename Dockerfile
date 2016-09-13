@@ -26,6 +26,9 @@ RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
       && rm /etc/httpd/conf.d/ssl.conf \
       && rm /etc/httpd/conf.d/userdir.conf \
       && rm /etc/httpd/conf.d/welcome.conf
+
+# Add starters and installers
+ADD ./container_files /opt
       
 COPY httpd-shib-foreground /usr/local/bin/
 COPY conf/attribute-map.xml /opt/etc/shibboleth/attribute-map.xml
