@@ -29,18 +29,9 @@ RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
 
 # Add starters and installers
 ADD ./container_files /opt
-      
-COPY httpd-shib-foreground /usr/local/bin/
-COPY conf/attribute-map.xml /opt/etc/shibboleth/attribute-map.xml
-COPY conf/inc-md-cert.pem /opt/etc/shibboleth/inc-md-cert.pem
-COPY conf/shibboleth_keygen.sh /opt/bin/shibboleth_keygen.sh
 
-#Added ssl default conf
-RUN ln -s /opt/etc/httpd/conf.d/ssl.conf /etc/httpd/conf.d/ssl.conf
-
-#Added shib module apache
-RUN ln -s /opt/etc/httpd/conf.modules.d/00-shib.conf /etc/httpd/conf.modules.d/00-shib.conf
-RUN ln -s /usr/lib64/shibboleth/mod_shib_24.so /etc/httpd/modules/mod_shib_24.so
+#Script to start service, Added ssl default conf, Added shib module apache
+RUN ln -s /opt/bin/httpd-shib-foreground  /usr/local/bin && ln -s /opt/etc/httpd/conf.d/ssl.conf /etc/httpd/conf.d/ssl.conf && ln -s /opt/etc/httpd/conf.modules.d/00-shib.conf /etc/httpd/conf.modules.d/00-shib.conf && ln -s /usr/lib64/shibboleth/mod_shib_24.so /etc/httpd/modules/mod_shib_24.so
 
 EXPOSE 80 443
 CMD ["httpd-shib-foreground"]
