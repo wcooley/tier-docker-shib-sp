@@ -1,3 +1,4 @@
+#!/bin/bash
 # Licensed to the University Corporation for Advanced Internet Development,
 # Inc. (UCAID) under one or more contributor license agreements.  See the
 # NOTICE file distributed with this work for additional information regarding
@@ -13,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#!/bin/bash
 
 # This file will run a container in the background
 source common.bash .
