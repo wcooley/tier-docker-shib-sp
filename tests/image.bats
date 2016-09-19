@@ -21,3 +21,7 @@ load ../common
 @test "Includes Shibboleth keygenerator" {
   docker run -i $maintainer/$imagename find /opt/bin/shibboleth_keygen.sh
 }
+
+@test "Includes httpd + shibd startup script" {
+  docker run -i $maintainer/$imagename find /opt/bin/httpd-shib-foreground
+}
