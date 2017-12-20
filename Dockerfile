@@ -24,6 +24,7 @@ RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
         httpd \
         mod_ssl \
         shibboleth.x86_64 \
+        dos2unix \
       && yum clean all \
       && rm /etc/httpd/conf.d/autoindex.conf \
       && rm /etc/httpd/conf.d/ssl.conf \
