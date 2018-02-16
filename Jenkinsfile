@@ -64,7 +64,7 @@ node('docker') {
 
   stage 'Push'
     docker.withRegistry('https://registry.hub.docker.com/',   "dockerhub-$maintainer") {
-          def baseImg = docker.build("$maintainer/$imagename")
+          def baseImg = docker.build("$maintainer/$imagename", "--no-cache .")
           baseImg.push("$tag")
     }
     
