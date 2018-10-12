@@ -18,3 +18,4 @@ load ../common
   result="$(docker exec -i $imagename curl http://localhost/Shibboleth.sso/Status)"
   [ "$result" != '' ]
 }
+
