@@ -10,8 +10,10 @@ Files you must supply/override in your downstream builds:
 
 The SP's private key and corresponding certificate (very important!) can be generated in your downstream container like this:
      RUN /usr/local/bin/shibboleth_keygen.sh -o /etc/shibboleth -f
+
            ...that command generates/overwrites the following files:
                        /etc/shibboleth/sp-key.pem
+
                        /etc/shibboleth/sp-cert.pem
 
 /etc/httpd/conf.d/ssl.conf
