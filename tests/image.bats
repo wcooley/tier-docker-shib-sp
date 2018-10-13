@@ -22,8 +22,8 @@ load ../common
   docker run -i $maintainer/$imagename find /usr/local/bin/shibboleth_keygen.sh
 }
 
-@test "Includes httpd + shibd startup script" {
-  docker run -i $maintainer/$imagename find /usr/local/bin/httpd-shib-foreground
+@test "Includes startup script" {
+  docker run -i $maintainer/$imagename find /usr/local/bin/startup.sh
 }
 
 @test "070 There are no known security vulnerabilities" {

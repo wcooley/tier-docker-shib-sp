@@ -25,10 +25,9 @@ Files you must supply/override in your downstream builds:
 >      entityID   
  <br /><br />
   ***New in the 3.0 release:***
->The image is based from the public CentOS7 image
->The TIER logging format has been implemented for shibd and httpd
->Everything now runs under supervisord
->The TIER Beacon has been implemented
->The file */etc/httpd/conf.d/ssl.conf* is now the default CentOS7 file
-
+* The image is based from the public CentOS7 image
+* The TIER logging format has been implemented for shibd and httpd
+* Everything now runs under supervisord
+* The TIER Beacon has been implemented
+* The file */etc/httpd/conf.d/ssl.conf* is now the default CentOS7 file
 
