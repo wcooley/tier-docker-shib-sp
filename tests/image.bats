@@ -18,10 +18,6 @@ load ../common
   docker run -i $maintainer/$imagename find /etc/shibboleth/inc-md-cert.pem
 }
 
-@test "Includes Shibboleth keygenerator" {
-  docker run -i $maintainer/$imagename find /usr/local/bin/shibboleth_keygen.sh
-}
-
 @test "Includes startup script" {
   docker run -i $maintainer/$imagename find /usr/local/bin/startup.sh
 }
