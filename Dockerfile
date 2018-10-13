@@ -18,9 +18,10 @@ RUN ln -sf /usr/share/zoneinfo/UTC /etc/localtime \
     && echo "NETWORKING=yes" > /etc/sysconfig/network
 
 RUN rm -fr /var/cache/yum/* && yum clean all && yum -y install --setopt=tsflags=nodocs epel-release && yum -y update && \
-    yum -y install net-tools wget curl tar unzip mlocate logrotate strace telnet man vim rsyslog cron httpd mod_ssl dos2unix && \
+    yum -y install net-tools wget curl tar unzip mlocate logrotate strace telnet man vim rsyslog cron httpd mod_ssl dos2unix cronie supervisor && \
     yum clean all
 
+#install shibboleth, cleanup httpd
 RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
       http://download.opensuse.org/repositories/security://shibboleth/CentOS_7/security:shibboleth.repo \
       && yum -y install shibboleth.x86_64 \
@@ -33,13 +34,10 @@ RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
 RUN LD_LIBRARY_PATH="/opt/shibboleth/lib64"
 RUN export LD_LIBRARY_PATH
 
-ADD ./container_files/system/httpd-shib-foreground  /usr/local/bin/
 ADD ./container_files/system/shibboleth_keygen.sh  /usr/local/bin/
 ADD ./container_files/httpd/ssl.conf /etc/httpd/conf.d/
 ADD ./container_files/shibboleth/* /etc/shibboleth/
-
-RUN chmod +x /usr/local/bin/httpd-shib-foreground \
-      && chmod +x /usr/local/bin/shibboleth_keygen.sh
+RUN chmod +x /usr/local/bin/shibboleth_keygen.sh
 
 # fix httpd logging to tier format
 RUN sed -i 's/LogFormat "/LogFormat "httpd;access_log;%{ENV}e;%{USERTOKEN}e;/g' /etc/httpd/conf/httpd.conf \
@@ -51,11 +49,31 @@ RUN sed -i 's/LogFormat "/LogFormat "httpd;access_log;%{ENV}e;%{USERTOKEN}e;/g' 
     && sed -i '/UseCanonicalName/c\UseCanonicalName On' /etc/httpd/conf/httpd.conf
 
 # add a basic page to shibb's default protected directory
-RUN mkdir -p /var/www/html/secure/
+RUN mkdir -p /var/www/html/secure/; mkdir -p /opt/tier/
 ADD container_files/httpd/index.html /var/www/html/secure/
 
 
-EXPOSE 80 443
-CMD ["httpd-shib-foreground"]
+# setup crond and supervisord
+ADD container_files/system/startup.sh /usr/local/bin/
+ADD container_files/system/setupcron.sh /usr/local/bin/
+ADD container_files/system/setenv.sh /opt/tier/
+ADD container_files/system/sendtierbeacon.sh /usr/local/bin/
+ADD container_files/system/supervisord.conf /etc/supervisor/
+RUN mkdir -p /etc/supervisor/conf.d  \
+    && chmod +x /usr/local/bin/setupcron.sh \
+    && chmod +x /usr/local/bin/sendtierbeacon.sh \
+# setup cron
+    && /usr/local/bin/setupcron.sh
 
+#set cron to not require a login session
+RUN sed -i '/session    required   pam_loginuid.so/c\#session    required   pam_loginuid.so' /etc/pam.d/crond
+
+
+EXPOSE 80 443
+
+HEALTHCHECK --interval=1m --timeout=30s \
+  CMD curl -k -f https://127.0.0.1:8443/Shibboleth.sso/Status || exit 1
+
+
+CMD ["/usr/local/bin/startup.sh"]
 
