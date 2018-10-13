@@ -8,12 +8,15 @@ It is based from CentOS 7 and includes httpd, mod_ssl, and the current shibbolet
 
 Files you must supply/override in your downstream builds:   
 
-1. The SP's ***private key and corresponding certificate*** (very important!), which can be generated in your downstream container like this:   
->     RUN /usr/local/bin/shibboleth_keygen.sh -o /etc/shibboleth -f   
+1. The SP's ***private keys and corresponding certificates*** (very important!), which can be generated in your downstream container like this:   
+>     RUN /etc/shibboleth/keygen.sh -o /etc/shibboleth/ -y 10 -n sp-encrypt -f \
+>          && /etc/shibboleth/keygen.sh -o /etc/shibboleth/ -y 10 -n sp-signing -f
 >   
->           ...that command generates/overwrites the following files:   
->                       /etc/shibboleth/sp-key.pem   
->                       /etc/shibboleth/sp-cert.pem   
+>           ...those commands generate/overwrite the following files:   
+>                       /etc/shibboleth/sp-encrypt-key.pem   
+>                       /etc/shibboleth/sp-encrypt-cert.pem   
+>                       /etc/shibboleth/sp-signing-key.pem   
+>                       /etc/shibboleth/sp-signing-cert.pem   
    
 2. ***/etc/httpd/conf.d/ssl.conf***
 >     including:   

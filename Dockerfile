@@ -34,10 +34,8 @@ RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
 RUN LD_LIBRARY_PATH="/opt/shibboleth/lib64"
 RUN export LD_LIBRARY_PATH
 
-ADD ./container_files/system/shibboleth_keygen.sh  /usr/local/bin/
 ADD ./container_files/httpd/ssl.conf /etc/httpd/conf.d/
 ADD ./container_files/shibboleth/* /etc/shibboleth/
-RUN chmod +x /usr/local/bin/shibboleth_keygen.sh
 
 # fix httpd logging to tier format
 RUN sed -i 's/LogFormat "/LogFormat "httpd;access_log;%{ENV}e;%{USERTOKEN}e;/g' /etc/httpd/conf/httpd.conf \
