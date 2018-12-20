@@ -11,7 +11,7 @@ node('docker') {
       git([ url: "https://github.internet2.edu/docker/util.git",
           credentialsId: "jenkins-github-access-token" ])
       sh 'ls'
-      sh 'rm -rf ../bin/*'
+      sh 'rm -rf ../bin/windows/'
       sh 'mv bin/* ../bin/.'
     }
   stage 'Setting build context'
