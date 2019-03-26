@@ -11,6 +11,7 @@ node('docker') {
       git([ url: "https://github.internet2.edu/docker/util.git",
           credentialsId: "jenkins-github-access-token" ])
       sh 'ls'
+      sh 'rm -rf ../bin/windows/'
       sh 'mv bin/* ../bin/.'
     }
   stage 'Setting build context'
@@ -39,7 +40,7 @@ node('docker') {
       sh 'bin/rebuild.sh &> debug'
     } catch(error) {
       def error_details = readFile('./debug');
-      def message = "BUILD ERROR: There was a problem building the shibboleth-sp mage. \n\n ${error_details}"
+      def message = "BUILD ERROR: There was a problem building the shibboleth-sp image. \n\n ${error_details}"
       sh "rm -f ./debug"
       handleError(message)
     }

@@ -1,9 +1,9 @@
-FROM tier/centos7base
+FROM centos:centos7
 
 # Define args and set a default value
 ARG maintainer=tier
 ARG imagename=shibboleth_sp
-ARG version=2.6.1
+ARG version=3.0.4
 
 MAINTAINER $maintainer
 LABEL Vendor="Internet2"
@@ -14,31 +14,64 @@ LABEL Version=$version
 
 LABEL Build docker build --rm --tag $maintainer/$imagename .
 
-# Add starters and installers
-ADD ./container_files /opt
+RUN ln -sf /usr/share/zoneinfo/UTC /etc/localtime \
+    && echo "NETWORKING=yes" > /etc/sysconfig/network
 
+RUN rm -fr /var/cache/yum/* && yum clean all && yum -y install --setopt=tsflags=nodocs epel-release && yum -y update && \
+    yum -y install net-tools wget curl tar unzip mlocate logrotate strace telnet man vim rsyslog cron httpd mod_ssl dos2unix cronie supervisor && \
+    yum clean all
+
+#install shibboleth, cleanup httpd
 RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
       http://download.opensuse.org/repositories/security://shibboleth/CentOS_7/security:shibboleth.repo \
-      && yum -y update \
-      && yum -y install \
-        httpd \
-        mod_ssl \
-        shibboleth.x86_64 \
-        dos2unix \
+      && yum -y install shibboleth.x86_64 \
       && yum clean all \
       && rm /etc/httpd/conf.d/autoindex.conf \
-      && rm /etc/httpd/conf.d/ssl.conf \
       && rm /etc/httpd/conf.d/userdir.conf \
-      && rm /etc/httpd/conf.d/welcome.conf \
-      && chmod +x /opt/bin/httpd-shib-foreground \
-      && chmod +x /opt/bin/shibboleth_keygen.sh
+      && rm /etc/httpd/conf.d/welcome.conf
       
 # Export this variable so that shibd can find its CURL library
 RUN LD_LIBRARY_PATH="/opt/shibboleth/lib64"
 RUN export LD_LIBRARY_PATH
 
-#Script to start service, Added ssl default conf, Added shib module apache
-RUN ln -s /opt/bin/httpd-shib-foreground  /usr/local/bin && ln -s /opt/etc/httpd/conf.d/ssl.conf /etc/httpd/conf.d/ssl.conf && ln -s /opt/etc/httpd/conf.modules.d/00-shib.conf /etc/httpd/conf.modules.d/00-shib.conf && ln -s /usr/lib64/shibboleth/mod_shib_24.so /etc/httpd/modules/mod_shib_24.so
+ADD ./container_files/httpd/ssl.conf /etc/httpd/conf.d/
+ADD ./container_files/shibboleth/* /etc/shibboleth/
+
+# fix httpd logging to tier format
+RUN sed -i 's/LogFormat "/LogFormat "httpd;access_log;%{ENV}e;%{USERTOKEN}e;/g' /etc/httpd/conf/httpd.conf \
+    && echo -e "\nErrorLogFormat \"httpd;error_log;%{ENV}e;%{USERTOKEN}e;[%{u}t] [%-m:%l] [pid %P:tid %T] %7F: %E: [client\ %a] %M% ,\ referer\ %{Referer}i\"" >> /etc/httpd/conf/httpd.conf \
+    && sed -i 's/CustomLog "logs\/access_log"/CustomLog "\/tmp\/logpipe"/g' /etc/httpd/conf/httpd.conf \
+    && sed -i 's/ErrorLog "logs\/error_log"/ErrorLog "\/tmp\/logpipe"/g' /etc/httpd/conf/httpd.conf \
+    && echo -e "\nPassEnv ENV" >> /etc/httpd/conf/httpd.conf \
+    && echo -e "\nPassEnv USERTOKEN" >> /etc/httpd/conf/httpd.conf \
+    && sed -i '/UseCanonicalName/c\UseCanonicalName On' /etc/httpd/conf/httpd.conf
+
+# add a basic page to shibb's default protected directory
+RUN mkdir -p /var/www/html/secure/; mkdir -p /opt/tier/
+ADD container_files/httpd/index.html /var/www/html/secure/
+
+
+# setup crond and supervisord
+ADD container_files/system/startup.sh /usr/local/bin/
+ADD container_files/system/setupcron.sh /usr/local/bin/
+ADD container_files/system/setenv.sh /opt/tier/
+ADD container_files/system/sendtierbeacon.sh /usr/local/bin/
+ADD container_files/system/supervisord.conf /etc/supervisor/
+RUN mkdir -p /etc/supervisor/conf.d  \
+    && chmod +x /usr/local/bin/setupcron.sh \
+    && chmod +x /usr/local/bin/sendtierbeacon.sh \
+# setup cron
+    && /usr/local/bin/setupcron.sh
+
+#set cron to not require a login session
+RUN sed -i '/session    required   pam_loginuid.so/c\#session    required   pam_loginuid.so' /etc/pam.d/crond
+
 
 EXPOSE 80 443
-CMD ["httpd-shib-foreground"]
+
+HEALTHCHECK --interval=1m --timeout=30s \
+  CMD curl -k -f https://127.0.0.1:8443/Shibboleth.sso/Status || exit 1
+
+
+CMD ["/usr/local/bin/startup.sh"]
+
