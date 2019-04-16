@@ -70,7 +70,7 @@ RUN sed -i '/session    required   pam_loginuid.so/c\#session    required   pam_
 EXPOSE 80 443
 
 HEALTHCHECK --interval=1m --timeout=30s \
-  CMD curl -k -f https://127.0.0.1:8443/Shibboleth.sso/Status || exit 1
+  CMD curl -k -f https://127.0.0.1/Shibboleth.sso/Status || exit 1
 
 
 CMD ["/usr/local/bin/startup.sh"]
