@@ -22,6 +22,7 @@ load ../common
   docker run -i $maintainer/$imagename find /usr/local/bin/startup.sh
 }
 
-@test "070 There are no known security vulnerabilities" {
-    ./tests/clairscan.sh ${maintainer}/${imagename}:latest
-}
+#@test "070 There are no known security vulnerabilities" {
+#    ./tests/clairscan.sh ${maintainer}/${imagename}:latest
+#}
+
