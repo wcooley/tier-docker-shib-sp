@@ -1,10 +1,10 @@
-FROM centos:centos7
+FROM rockylinux/rockylinux:8.4
 
 # Define args and set a default value
 ARG maintainer=tier
 ARG imagename=shibboleth_sp
 ARG version=3.2.3
-ARG TIERVERSION=20210707
+ARG TIERVERSION=20210809_rocky84
 
 MAINTAINER $maintainer
 LABEL Vendor="Internet2"
@@ -19,8 +19,11 @@ RUN ln -sf /usr/share/zoneinfo/UTC /etc/localtime \
     && echo "NETWORKING=yes" > /etc/sysconfig/network
 
 RUN rm -fr /var/cache/yum/* && yum clean all && yum -y install --setopt=tsflags=nodocs epel-release && yum -y update && \
-    yum -y install net-tools wget curl tar unzip mlocate logrotate strace telnet man vim rsyslog cron httpd mod_ssl dos2unix cronie supervisor && \
+    yum -y install net-tools wget curl tar unzip mlocate logrotate strace telnet man vim rsyslog cronie httpd mod_ssl dos2unix supervisor && \
     yum clean all
+
+#generate localhost.crt
+RUN /usr/libexec/httpd-ssl-gencerts && chmod 644 /etc/pki/tls/private/localhost.key
 
 #install shibboleth, cleanup httpd
 RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
