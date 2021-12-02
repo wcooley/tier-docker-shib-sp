@@ -3,8 +3,8 @@ FROM centos:centos7
 # Define args and set a default value
 ARG maintainer=tier
 ARG imagename=shibboleth_sp
-ARG version=3.2.3
-ARG TIERVERSION=20210707
+ARG version=3.3.0
+ARG TIERVERSION=20211202
 
 MAINTAINER $maintainer
 LABEL Vendor="Internet2"
@@ -23,9 +23,8 @@ RUN rm -fr /var/cache/yum/* && yum clean all && yum -y install --setopt=tsflags=
     yum clean all
 
 #install shibboleth, cleanup httpd
-RUN curl -o /etc/yum.repos.d/security:shibboleth.repo \
-      http://download.opensuse.org/repositories/security://shibboleth/CentOS_7/security:shibboleth.repo \
-      && yum -y install shibboleth.x86_64 \
+COPY container_files/shibboleth/shibboleth.repo /etc/yum.repos.d/security:shibboleth.repo
+RUN yum -y install shibboleth.x86_64 \
       && yum clean all \
       && rm /etc/httpd/conf.d/autoindex.conf \
       && rm /etc/httpd/conf.d/userdir.conf \
