@@ -23,5 +23,5 @@ mkfifo -m 666 /tmp/logshibd
 (cat <> /tmp/logshibd | awk -v ENV="$ENV" -v UT="$USERTOKEN" '{printf "shibd;console;%s;%s;%s\n", ENV, UT, $0; fflush()}' 1>/tmp/logpipe) &
 
 #launch supervisord
-/usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 
