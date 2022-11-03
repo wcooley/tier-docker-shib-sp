@@ -26,16 +26,16 @@ RUN rm -fr /var/cache/yum/* && yum clean all && yum -y install --setopt=tsflags=
     yum clean all
 
 #install via local rpms
-COPY container_files/shibboleth/$TARGETPLATFORM/*.rpm /tmp
-RUN cd /tmp && rpm -i *.rpm
+# COPY container_files/shibboleth/$TARGETPLATFORM/*.rpm /tmp
+# RUN cd /tmp && rpm -i *.rpm
 
 #install shibboleth, cleanup httpd
-#COPY container_files/shibboleth/shibboleth.repo /etc/yum.repos.d/security:shibboleth.repo
-#RUN yum -y install shibboleth \
-#      && yum clean all \
-#      && rm /etc/httpd/conf.d/autoindex.conf \
-#      && rm /etc/httpd/conf.d/userdir.conf \
-#      && rm /etc/httpd/conf.d/welcome.conf
+COPY container_files/shibboleth/shibboleth.repo /etc/yum.repos.d/security:shibboleth.repo
+RUN yum -y install shibboleth \
+      && yum clean all \
+      && rm /etc/httpd/conf.d/autoindex.conf \
+      && rm /etc/httpd/conf.d/userdir.conf \
+      && rm /etc/httpd/conf.d/welcome.conf
       
 # Export this variable so that shibd can find its CURL library
 RUN LD_LIBRARY_PATH="/opt/shibboleth/lib64"
