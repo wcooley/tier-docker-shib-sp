@@ -1,80 +1,162 @@
-node('docker') {
 
-  stage 'Checkout'
+pipeline {
+    agent { node { label 'docker-multi-arch' } }
+    environment { 
+        maintainer = "t"
+        imagename = 's'
+        tag = 'l'
+        DOCKERHUBPW=credentials('tieradmin-dockerhub-pw')
 
-    checkout scm
-
-  stage 'Acquire util'
-
-    sh 'mkdir -p tmp'
-    dir('tmp'){
-      git([ url: "https://github.internet2.edu/docker/util.git",
-          credentialsId: "jenkins-github-access-token" ])
-      sh 'ls'
-      sh 'rm -rf ../bin/windows/'
-      sh 'mv bin/* ../bin/.'
     }
-  stage 'Setting build context'
-  
-    def maintainer = maintainer()
-    def imagename = imagename()
-    def tag
-    
-    // Tag images created on master branch with 'latest'
-    if(env.BRANCH_NAME == "master"){
-      tag = "latest"
-    }else{
-      tag = env.BRANCH_NAME
+    stages {
+        stage('Setting build context') {
+            steps {
+                script {
+                    maintainer = maintain()
+                    imagename = imagename()
+                    if(env.BRANCH_NAME == "master") {
+                       tag = "latest"
+                    } else {
+                       tag = env.BRANCH_NAME
+                    }
+                    if(!imagename){
+                        echo "You must define an imagename in common.bash"
+                        currentBuild.result = 'FAILURE'
+                     }
+                    sh 'mkdir -p tmp && mkdir -p bin'
+                    dir('tmp'){
+                      git([ url: "https://github.internet2.edu/docker/util.git", credentialsId: "jenkins-github-access-token" ])
+                      sh 'rm -rf ../bin/*'
+                      sh 'mv ./bin/* ../bin/.'
+                    }
+                    // Build and test scripts expect that 'tag' is present in common.bash. This is necessary for both Jenkins and standalone testing.
+                    // We don't care if there are more 'tag' assignments there. The latest one wins.
+                    sh "echo >> common.bash ; echo \"tag=\\\"${tag}\\\"\" >> common.bash ; echo common.bash ; cat common.bash"
+                }  
+             }
+        }    
+        stage('Clean') {
+            steps {
+                script {
+                   try{
+                     sh 'bin/destroy.sh >> debug'
+                   } catch(error) {
+                     def error_details = readFile('./debug');
+                     def message = "BUILD ERROR: There was a problem building the Base Image. \n\n ${error_details}"
+                     sh "rm -f ./debug"
+                     handleError(message)
+                   }
+                }
+            }
+        } 
+        stage('Build') {
+            steps {
+                script {
+                  try{
+                        sh 'docker login -u tieradmin -p $DOCKERHUBPW'
+                        // fails if already exists
+                        // sh 'docker buildx create --use --name multiarch --append'
+                        sh 'docker buildx inspect --bootstrap'
+                        sh 'docker buildx ls'
+                        sh "docker buildx build --platform linux/amd64 -t ${imagename} ."
+                        sh "docker buildx build --platform linux/arm64 -t ${imagename}:arm64 ."
+                        // sh 'docker buildx build --push --platform linux/arm64,linux/amd64 -t i2incommon/shib-idp:$tag .'
+                  } catch(error) {
+                     def error_details = readFile('./debug');
+                      def message = "BUILD ERROR: There was a problem building ${maintainer}/${imagename}:${tag}. \n\n ${error_details}"
+                     sh "rm -f ./debug"
+                     handleError(message)
+                  }
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                script {
+                   try {
+                     // echo "Starting tests..."
+                     // sh 'bin/test.sh 2>&1 | tee debug ; test ${PIPESTATUS[0]} -eq 0'
+                     //    ===> need bats, webisoget on jenkins node
+                     echo "Skipping tests for now"
+                   } catch (error) {
+                     def error_details = readFile('./debug')
+                     def message = "BUILD ERROR: There was a problem testing ${maintainer}/${imagename}:${tag}. \n\n ${error_details}"
+                     sh "rm -f ./debug"
+                     handleError(message)
+                   } 
+                }    
+             }
+        }
+        stage('Scan') {
+            steps {
+                script {
+                   try {
+                         echo "Starting security scan..."
+                         // Install trivy and HTML template
+                         sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.31.1'
+                         sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > html.tpl'
+
+                         // Scan container for all vulnerability levels
+                         echo "Scanning for all vulnerabilities..."
+                         sh 'mkdir -p reports'
+                         sh "trivy image --ignore-unfixed --vuln-type os,library --severity CRITICAL,HIGH --no-progress --security-checks vuln --format template --template '@html.tpl' -o reports/container-scan.html ${maintainer}/${imagename}:${tag}"
+                         publishHTML target : [
+                             allowMissing: true,
+                             alwaysLinkToLastBuild: true,
+                             keepAll: true,
+                             reportDir: 'reports',
+                             reportFiles: 'container-scan.html',
+                             reportName: 'Security Scan',
+                             reportTitles: 'Security Scan'
+                          ]
+
+                         // Scan again and fail on CRITICAL vulns
+                         //below can be temporarily commented to prevent build from failing
+                         echo "Scanning for CRITICAL vulnerabilities only (fatal)..."
+                         sh "trivy image --ignore-unfixed --vuln-type os,library --exit-code 1 --severity CRITICAL ${maintainer}/${imagename}:${tag}"
+                         //echo "Skipping scan for CRITICAL vulnerabilities (temporary)..."
+                   } catch(error) {
+                           def error_details = readFile('./debug');
+                           def message = "BUILD ERROR: There was a problem scanning ${imagename}:${tag}. \n\n ${error_details}"
+                           sh "rm -f ./debug"
+                           handleError(message)
+                   }
+                }
+            }
+        }
+        stage('Push') {
+            steps {
+                script {
+                        // statically defining jenkins credential value dockerhub-tier
+                        docker.withRegistry('https://registry.hub.docker.com/',   "dockerhub-tier") {
+                          // baseImg.push("$tag")
+                          // echo "already pushed to Dockerhub"
+                        echo "Pushing image to Docker hub"
+                        sh "docker buildx build --push --platform linux/arm64,linux/amd64 -t ${maintainer}/${imagename}:$tag ."
+                        }
+                  }
+            }
+        }
+        stage('Notify') {
+            steps{
+                echo "$maintainer"
+                slackSend color: 'good', message: "$maintainer/$imagename:$tag pushed to DockerHub"
+            }
+        }
     }
-        
-    if(!imagename){
-      echo "You must define an imagename in common.bash"
-      currentBuild.result = 'FAILURE'
-     }
-     if(maintainer){
-      echo "Building ${imagename}:${tag} for ${maintainer}"
-     }
-
-  stage 'Build'
-    try{
-      sh 'bin/rebuild.sh &> debug'
-    } catch(error) {
-      def error_details = readFile('./debug');
-      def message = "BUILD ERROR: There was a problem building the shibboleth-sp image. \n\n ${error_details}"
-      sh "rm -f ./debug"
-      handleError(message)
+    post { 
+        always { 
+            echo 'Done Building.'
+        }
+        failure {
+            // slackSend color: 'good', message: "Build failed"
+            handleError("BUILD ERROR: There was a problem building ${maintainer}/${imagename}:${tag}.")
+        }
     }
-  stage 'Start container'
-
-    sh 'bin/ci-run.sh'
-
-  stage 'Tests'
-
-    try{
-      sh 'bin/test.sh &> debug'
-    } catch(error) {
-      def error_details = readFile('./debug');
-      def message = "BUILD ERROR: There was a problem testing ${imagename}:${tag}. \n\n ${error_details}"
-      sh "rm -f ./debug"
-      handleError(message)
-    }
-    
-  stage 'Stop container'
-
-    sh 'bin/ci-stop.sh'
-
-  stage 'Push'
-    docker.withRegistry('https://registry.hub.docker.com/',   "dockerhub-$maintainer") {
-          def baseImg = docker.build("$maintainer/$imagename", "--no-cache .")
-          baseImg.push("$tag")
-    }
-    
-  stage 'Notify'
-  
-    slackSend color: 'good', message: "$maintainer/$imagename:$tag pushed to DockerHub"
 }
 
-def maintainer() {
+
+def maintain() {
   def matcher = readFile('common.bash') =~ 'maintainer="(.+)"'
   matcher ? matcher[0][1] : 'tier'
 }
@@ -88,5 +170,6 @@ def handleError(String message){
   echo "${message}"
   currentBuild.setResult("FAILED")
   slackSend color: 'danger', message: "${message}"
+  //step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: 'pcaskey@internet2.edu', sendToIndividuals: true])
   sh 'exit 1'
 }
