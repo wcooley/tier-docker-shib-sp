@@ -60,7 +60,7 @@ pipeline {
                         sh 'docker buildx ls'
                         sh "docker buildx build --platform linux/amd64 -t ${imagename} ."
                         sh "docker buildx build --platform linux/arm64 -t ${imagename}:arm64 ."
-                        // sh 'docker buildx build --push --platform linux/arm64,linux/amd64 -t i2incommon/shib-sp:$tag .'
+                        sh 'docker buildx build --push --platform linux/arm64,linux/amd64 -t i2incommon/shib-sp:$tag .'
                   } catch(error) {
                      def error_details = readFile('./debug');
                       def message = "BUILD ERROR: There was a problem building ${maintainer}/${imagename}:${tag}. \n\n ${error_details}"
@@ -132,7 +132,7 @@ pipeline {
                           // baseImg.push("$tag")
                           // echo "already pushed to Dockerhub"
                         echo "Pushing image to Docker hub"
-                        sh "docker buildx build --push --platform linux/arm64,linux/amd64 -t ${maintainer}/${imagename}:$tag ."
+                        // sh "docker buildx build --push --platform linux/arm64,linux/amd64 -t ${maintainer}/${imagename}:$tag ."
                         }
                   }
             }
