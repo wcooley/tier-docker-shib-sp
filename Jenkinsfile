@@ -137,14 +137,15 @@ pipeline {
         stage('Push') {
             steps {
                 script {
-                        // statically defining jenkins credential value dockerhub-tier
-                        docker.withRegistry('https://registry.hub.docker.com/',   "dockerhub-tier") {
-                          // baseImg.push("$tag")
-                          // echo "already pushed to Dockerhub"
-                        echo "Pushing image to Docker hub"
+                        sh 'docker login -u tieradmin -p $DOCKERHUBPW'
+                        // fails if already exists
+                        // sh 'docker buildx create --use --name multiarch --append'
+                        sh 'docker buildx inspect --bootstrap'
+                        sh 'docker buildx ls'
+                        echo "Pushing image to dockerhub..."
                         sh "docker buildx build --push --platform linux/arm64,linux/amd64 -t ${maintainer}/${imagename}:$tag ."
-                        }
-                  }
+                        // sh "docker buildx build --push --platform linux/arm64,linux/amd64 -t i2incommon/shib-idp:$tag ."
+                 }
             }
         }
         stage('Notify') {
