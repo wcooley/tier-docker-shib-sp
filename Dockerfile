@@ -1,16 +1,17 @@
-FROM centos:centos7
+FROM rockylinux:8.6
+#FROM --platform=$TARGETPLATFORM rockylinux:8.6
 
 # Define args and set a default value
 ARG maintainer=tier
 ARG imagename=shibboleth_sp
 ARG version=3.4.0
-ARG TIERVERSION=20221103
+ARG TIERVERSION=20221104-Rocky8-MA
 
 MAINTAINER $maintainer
 LABEL Vendor="Internet2"
 LABEL ImageType="Base"
 LABEL ImageName=$imagename
-LABEL ImageOS=centos7
+LABEL ImageOS=rocky8
 LABEL Version=$version
 
 LABEL Build docker build --rm --tag $maintainer/$imagename .
@@ -19,7 +20,7 @@ RUN ln -sf /usr/share/zoneinfo/UTC /etc/localtime \
     && echo "NETWORKING=yes" > /etc/sysconfig/network
 
 RUN rm -fr /var/cache/yum/* && yum clean all && yum -y install --setopt=tsflags=nodocs epel-release && yum -y update && \
-    yum -y install net-tools wget curl tar unzip mlocate logrotate strace telnet man vim rsyslog cron httpd mod_ssl dos2unix cronie supervisor && \
+    yum -y install net-tools wget curl tar unzip mlocate logrotate strace telnet man vim rsyslog httpd mod_ssl dos2unix cronie supervisor && \
     yum clean all
 
 #install shibboleth, cleanup httpd
@@ -36,6 +37,11 @@ RUN export LD_LIBRARY_PATH
 
 ADD ./container_files/httpd/ssl.conf /etc/httpd/conf.d/
 ADD ./container_files/shibboleth/* /etc/shibboleth/
+
+#RUN openssl req -newkey rsa:2048 -nodes -keyout /etc/pki/tls/private/localhost.key -x509 -days 3650 -out /etc/pki/tls/certs/localhost.crt
+RUN openssl req -new -nodes -newkey rsa:2048 -subj "/commonName=localhost.localdomain" -batch -keyout /etc/pki/tls/private/localhost.key -out localhost.csr
+RUN openssl x509 -req -days 1825 -in localhost.csr -signkey /etc/pki/tls/private/localhost.key -out /etc/pki/tls/certs/localhost.crt
+
 
 # fix httpd logging to tier format
 RUN sed -i 's/LogFormat "/LogFormat "httpd;access_log;%{ENV}e;%{USERTOKEN}e;/g' /etc/httpd/conf/httpd.conf \
