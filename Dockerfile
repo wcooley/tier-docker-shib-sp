@@ -1,5 +1,4 @@
-FROM rockylinux:8.6
-#FROM --platform=$TARGETPLATFORM rockylinux:8.6
+FROM --platform=$TARGETPLATFORM rockylinux:8.6
 
 # Define args and set a default value
 ARG maintainer=tier
@@ -25,7 +24,7 @@ RUN rm -fr /var/cache/yum/* && yum clean all && yum -y install --setopt=tsflags=
 
 #install shibboleth, cleanup httpd
 COPY container_files/shibboleth/shibboleth.repo /etc/yum.repos.d/security:shibboleth.repo
-RUN yum -y install shibboleth.x86_64 \
+RUN yum -y install shibboleth \
       && yum clean all \
       && rm /etc/httpd/conf.d/autoindex.conf \
       && rm /etc/httpd/conf.d/userdir.conf \
