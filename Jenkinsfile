@@ -150,7 +150,7 @@ pipeline {
                 script {
                    try{
 		     echo "Cleaning up artifacts from the build..."
-                     sh 'tests/cleanup.sh'
+                     sh 'sudo tests/cleanup.sh'
                    } catch(error) {
                      def error_details = readFile('./debug');
                      def message = "BUILD ERROR: There was a problem with cleanup of the image. \n\n ${error_details}"
